@@ -285,41 +285,41 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
 
     // External contract
 
-    function test(InEuint128 memory inValue, FHERC20_EIP712_Permit calldata permit) {
-        eETH.permit(permit);
+    // function test(InEuint128 memory inValue, FHERC20_EIP712_Permit calldata permit) {
+    //     eETH.permit(permit);
 
-        // inValue.ctHash = 0xAAA
-        // amount = 0xAAA
+    //     // inValue.ctHash = 0xAAA
+    //     // amount = 0xAAA
 
-        amount = FHE.asEuint128(encryptedInput);
+    //     amount = FHE.asEuint128(encryptedInput);
 
-        // FHERC20 call
-        eETH.encTransferFrom(sender, receiver, amount, permit);
-    }
+    //     // FHERC20 call
+    //     eETH.encTransferFrom(sender, receiver, amount, permit);
+    // }
 
-    function encTransferFrom(
-        address from,
-        address to,
-        euint128 value,
-        FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint128 transferred) {
-        _verifyPermit(from, value, permit);
-        transferred = _transfer(from, to, value);
-    }
+    // function encTransferFrom(
+    //     address from,
+    //     address to,
+    //     euint128 value,
+    //     FHERC20_EIP712_Permit calldata permit
+    // ) public virtual returns (euint128 transferred) {
+    //     _verifyPermit(from, value, permit);
+    //     transferred = _transfer(from, to, value);
+    // }
 
-    function encTransferFrom(
-        address from,
-        address to,
-        euint128 value,
-        euint128 maxValue,
-        FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint128 transferred) {
-        _verifyPermit(from, maxValue, permit);
+    // function encTransferFrom(
+    //     address from,
+    //     address to,
+    //     euint128 value,
+    //     euint128 maxValue,
+    //     FHERC20_EIP712_Permit calldata permit
+    // ) public virtual returns (euint128 transferred) {
+    //     _verifyPermit(from, maxValue, permit);
 
-        value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint128(0));
+    //     value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint128(0));
 
-        transferred = _transfer(from, to, value);
-    }
+    //     transferred = _transfer(from, to, value);
+    // }
 
     /**
      * @dev Moves a `value` amount of tokens from `from` to `to`.
@@ -413,6 +413,36 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
 
         emit Transfer(from, to, _indicatorTick);
         emit EncTransfer(from, to, euint128.unwrap(transferred));
+    }
+
+    /**
+     * @dev Creates a `value` amount of tokens and assigns them to `account`, by transferring it from address(0).
+     * Relies on the `_update` mechanism
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * NOTE: This function is not virtual, {_update} should be overridden instead.
+     */
+    function _mint(address account, uint128 value) internal returns (euint128 transferred) {
+        if (account == address(0)) {
+            revert ERC20InvalidReceiver(address(0));
+        }
+        transferred = _update(address(0), account, FHE.asEuint128(value));
+    }
+
+    /**
+     * @dev Destroys a `value` amount of tokens from `account`, lowering the total supply.
+     * Relies on the `_update` mechanism.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * NOTE: This function is not virtual, {_update} should be overridden instead
+     */
+    function _burn(address account, uint128 value) internal returns (euint128 transferred) {
+        if (account == address(0)) {
+            revert ERC20InvalidSender(address(0));
+        }
+        transferred = _update(account, address(0), FHE.asEuint128(value));
     }
 
     /**
