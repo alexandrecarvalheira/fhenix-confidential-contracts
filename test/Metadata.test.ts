@@ -2,6 +2,7 @@ import hre, { ethers } from "hardhat";
 import { Metadata } from "../typechain-types";
 import { cofhejs, Encryptable } from "cofhejs/node";
 import { appendMetadata, getSecurityZoneFromHash, getUintTypeFromHash } from "./metadata";
+import { expect } from "chai";
 
 describe("Metadata", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -34,6 +35,7 @@ describe("Metadata", function () {
       const inEuint8AppendedHash = await metadata.metaMap(inEuint8Hash);
 
       const tsAppended = appendMetadata(inEuint8.ctHash, inEuint8.securityZone, inEuint8.utype, false);
+      expect(tsAppended).to.equal(inEuint8AppendedHash);
 
       console.log({
         inEuint8,

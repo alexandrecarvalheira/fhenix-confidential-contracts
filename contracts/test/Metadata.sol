@@ -3,15 +3,12 @@
 
 pragma solidity ^0.8.25;
 import "@fhenixprotocol/cofhe-contracts/FHE.sol";
-import "hardhat/console.sol";
 
 contract Metadata {
     mapping(uint256 => uint256) public metaMap;
 
     function addEuint8Metadata(InEuint8 memory in8) public {
-        console.log("In8", in8.ctHash);
         euint8 out = FHE.asEuint8(in8);
-        console.log("Out8", euint8.unwrap(out));
         metaMap[in8.ctHash] = euint8.unwrap(FHE.asEuint8(in8));
     }
     function addEuint16Metadata(InEuint16 memory in16) public {

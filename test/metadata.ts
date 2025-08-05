@@ -1,3 +1,5 @@
+import { FheTypes } from "cofhejs/node";
+
 // Reserve 2 bytes for metadata (clears last 2 bytes of 256-bit word)
 const HASH_MASK_FOR_METADATA = (1n << 256n) - 1n - 0xffffn; // 0xffff = 2^16 - 1
 
@@ -31,12 +33,17 @@ export const appendMetadata = (
   const securityZoneByte = BigInt(((securityZone << 24) >> 24) & 0xff);
 
   const metadata = (BigInt(getByteForTrivialAndType(isTrivial, uintType)) << 8n) | securityZoneByte;
-  console.log({
-    securityZoneByte,
-    metadata,
-  });
 
   return result | metadata;
+};
+
+// Utility function that accepts an encrypted input
+export const appendMetadataToInput = (encryptedInput: {
+  ctHash: bigint;
+  securityZone: number;
+  utype: FheTypes;
+}): bigint => {
+  return appendMetadata(encryptedInput.ctHash, encryptedInput.securityZone, encryptedInput.utype, false);
 };
 
 // Extracts the signed int8 security zone from the lowest byte
