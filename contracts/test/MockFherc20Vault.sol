@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.25;
 
-import { InEuint128 } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import { FHE, InEuint128, euint128 } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import { IFHERC20 } from "../interfaces/IFHERC20.sol";
 import { FHERC20Wrapper } from "../FHERC20Wrapper.sol";
 
@@ -15,6 +15,8 @@ contract MockFherc20Vault {
     }
 
     function deposit(InEuint128 memory inValue, IFHERC20.FHERC20_EIP712_Permit calldata permit) public {
-        fherc20.encTransferFrom(msg.sender, address(this), inValue, permit);
+        euint128 value = FHE.asEuint128(inValue);
+        FHE.allow(value, address(fherc20));
+        fherc20.encTransferFrom(msg.sender, address(this), value, permit);
     }
 }

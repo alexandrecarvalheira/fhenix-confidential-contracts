@@ -8,7 +8,6 @@ import {
   ticksToIndicated,
   tick,
   generateTransferFromPermit,
-  nullLogState,
 } from "./utils";
 import { ZeroAddress } from "ethers";
 
@@ -308,7 +307,7 @@ describe("FHERC20", function () {
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
       await prepExpectFHERC20BalancesChange(XFHE, alice.address);
 
-      await expect(XFHE.connect(alice).encTransferFrom(bob.address, alice.address, encTransferInput, permit))
+      await expect(XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit))
         .to.emit(XFHE, "Transfer")
         .withArgs(bob.address, alice.address, await tick(XFHE));
 
@@ -343,7 +342,7 @@ describe("FHERC20", function () {
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
       await prepExpectFHERC20BalancesChange(XFHE, alice.address);
 
-      await expect(XFHE.connect(eve).encTransferFrom(bob.address, alice.address, encTransferInput, permit))
+      await expect(XFHE.connect(eve).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit))
         .to.emit(XFHE, "Transfer")
         .withArgs(bob.address, alice.address, await tick(XFHE));
 
@@ -362,7 +361,7 @@ describe("FHERC20", function () {
     });
 
     it("Should transfer from bob to MockFherc20Vault", async function () {
-      const { XFHE, bob, alice, eve, encTransferInput, transferValue } = await setupEncTransferFromFixture();
+      const { XFHE, bob, encTransferInput, transferValue } = await setupEncTransferFromFixture();
 
       const vaultFactory = await ethers.getContractFactory("MockFherc20Vault");
       const Vault = await vaultFactory.deploy(XFHE.target);
@@ -381,7 +380,7 @@ describe("FHERC20", function () {
         valueHash: encTransferInput.ctHash,
       });
 
-      // Success - Bob -> Alice
+      // Success - Bob -> Vault
 
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
       await prepExpectFHERC20BalancesChange(XFHE, vaultAddress);
@@ -417,7 +416,7 @@ describe("FHERC20", function () {
       });
 
       await expect(
-        XFHE.connect(alice).encTransferFrom(bob.address, ZeroAddress, encTransferInput, permit),
+        XFHE.connect(alice).encTransferFromDirect(bob.address, ZeroAddress, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC20InvalidReceiver");
     });
 
@@ -447,7 +446,7 @@ describe("FHERC20", function () {
 
       // Expect revert
       await expect(
-        XFHE.connect(alice).encTransferFrom(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC2612ExpiredSignature");
     });
 
@@ -467,7 +466,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(bob).encTransferFrom(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(bob).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "FHERC20EncTransferFromOwnerMismatch");
     });
 
@@ -487,7 +486,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFrom(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "FHERC20EncTransferFromSpenderMismatch");
     });
 
@@ -507,7 +506,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFrom(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "FHERC20EncTransferFromValueHashMismatch");
     });
 
@@ -527,7 +526,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFrom(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC2612InvalidSigner");
     });
 
@@ -548,7 +547,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFrom(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC2612InvalidSigner");
     });
   });
