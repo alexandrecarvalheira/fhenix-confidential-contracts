@@ -255,14 +255,14 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      * - the caller must have allowance for ``from``'s tokens of at least
      * `value`.
      */
-    function encTransferFrom(
+    function encTransferFromDirectWithMax(
         address from,
         address to,
         euint128 value,
         InEuint128 memory maxInValue,
         FHERC20_EIP712_Permit calldata permit
     ) public virtual returns (euint128) {
-        _verifyPermit(from, maxInValue, permit);
+        _verifyPermit(from, maxInValue.ctHash, permit);
 
         euint128 maxIn = FHE.asEuint128(maxInValue);
         value = FHE.select(FHE.lte(value, maxIn), value, FHE.asEuint128(0));
@@ -270,56 +270,42 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         return _transfer(from, to, value);
     }
 
-    function encTransferFrom(
+    function encTransferFromDirect(
         address from,
         address to,
         InEuint128 memory inValue,
         FHERC20_EIP712_Permit calldata permit
     ) public virtual returns (euint128 transferred) {
-        _verifyPermit(from, inValue, permit);
+        _verifyPermit(from, inValue.ctHash, permit);
 
         euint128 value = FHE.asEuint128(inValue);
 
         transferred = _transfer(from, to, value);
     }
 
-    // External contract
+    function encTransferFrom(
+        address from,
+        address to,
+        euint128 value,
+        FHERC20_EIP712_Permit calldata permit
+    ) public virtual returns (euint128 transferred) {
+        _verifyPermit(from, euint128.unwrap(value), permit);
+        transferred = _transfer(from, to, value);
+    }
 
-    // function test(InEuint128 memory inValue, FHERC20_EIP712_Permit calldata permit) {
-    //     eETH.permit(permit);
+    function encTransferFromWithMax(
+        address from,
+        address to,
+        euint128 value,
+        euint128 maxValue,
+        FHERC20_EIP712_Permit calldata permit
+    ) public virtual returns (euint128 transferred) {
+        _verifyPermit(from, euint128.unwrap(maxValue), permit);
 
-    //     // inValue.ctHash = 0xAAA
-    //     // amount = 0xAAA
+        value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint128(0));
 
-    //     amount = FHE.asEuint128(encryptedInput);
-
-    //     // FHERC20 call
-    //     eETH.encTransferFrom(sender, receiver, amount, permit);
-    // }
-
-    // function encTransferFrom(
-    //     address from,
-    //     address to,
-    //     euint128 value,
-    //     FHERC20_EIP712_Permit calldata permit
-    // ) public virtual returns (euint128 transferred) {
-    //     _verifyPermit(from, value, permit);
-    //     transferred = _transfer(from, to, value);
-    // }
-
-    // function encTransferFrom(
-    //     address from,
-    //     address to,
-    //     euint128 value,
-    //     euint128 maxValue,
-    //     FHERC20_EIP712_Permit calldata permit
-    // ) public virtual returns (euint128 transferred) {
-    //     _verifyPermit(from, maxValue, permit);
-
-    //     value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint128(0));
-
-    //     transferred = _transfer(from, to, value);
-    // }
+        transferred = _transfer(from, to, value);
+    }
 
     /**
      * @dev Moves a `value` amount of tokens from `from` to `to`.
@@ -502,7 +488,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         _indicatedBalances[msg.sender] = 0;
     }
 
-    function _verifyPermit(address from, InEuint128 memory inValue, FHERC20_EIP712_Permit calldata permit) internal {
+    function _verifyPermit(address from, uint256 inHash, FHERC20_EIP712_Permit calldata permit) internal {
         if (block.timestamp > permit.deadline) {
             revert ERC2612ExpiredSignature(permit.deadline);
         }
@@ -512,8 +498,8 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         if (msg.sender != permit.spender) {
             revert FHERC20EncTransferFromSpenderMismatch(msg.sender, permit.spender);
         }
-        if (inValue.ctHash != permit.value_hash) {
-            revert FHERC20EncTransferFromValueHashMismatch(inValue.ctHash, permit.value_hash);
+        if (inHash != permit.value_hash) {
+            revert FHERC20EncTransferFromValueHashMismatch(inHash, permit.value_hash);
         }
 
         bytes32 structHash = keccak256(
