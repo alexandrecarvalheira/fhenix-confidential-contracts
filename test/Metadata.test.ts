@@ -1,7 +1,7 @@
 import hre, { ethers } from "hardhat";
 import { Metadata } from "../typechain-types";
 import { cofhejs, Encryptable } from "cofhejs/node";
-import { appendMetadata, getSecurityZoneFromHash, getUintTypeFromHash } from "./metadata";
+import { appendMetadata } from "./metadata";
 import { expect } from "chai";
 
 describe("Metadata", function () {
@@ -36,15 +36,6 @@ describe("Metadata", function () {
 
       const tsAppended = appendMetadata(inEuint8.ctHash, inEuint8.securityZone, inEuint8.utype, false);
       expect(tsAppended).to.equal(inEuint8AppendedHash);
-
-      console.log({
-        inEuint8,
-        inEuint8Hash,
-        inEuint8AppendedHash,
-        tsAppended,
-        uintType: getUintTypeFromHash(tsAppended),
-        securityZone: getSecurityZoneFromHash(tsAppended),
-      });
     });
   });
 });

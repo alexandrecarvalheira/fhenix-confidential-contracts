@@ -8,7 +8,7 @@ import { FHERC20 } from "../FHERC20.sol";
 import { IFHERC20 } from "../interfaces/IFHERC20.sol";
 import { FHESafeMath } from "../utils/FHESafeMath.sol";
 
-contract Vault {
+contract MockVault {
     FHERC20 public immutable asset;
     mapping(address => euint128) public balances;
 

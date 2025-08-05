@@ -1,5 +1,5 @@
 import hre, { ethers } from "hardhat";
-import { FHERC20_Harness, Vault } from "../typechain-types";
+import { FHERC20_Harness, MockVault } from "../typechain-types";
 import { cofhejs, Encryptable } from "cofhejs/node";
 import { appendMetadataToInput } from "./metadata";
 import { expect } from "chai";
@@ -11,7 +11,7 @@ import {
   ticksToIndicated,
 } from "./utils";
 
-describe.only("Vault (encTransferFrom)", function () {
+describe("MockVault (encTransferFrom)", function () {
   // We define a fixture to reuse the same setup in every test.
   const deployContracts = async () => {
     // Deploy XFHE
@@ -21,11 +21,11 @@ describe.only("Vault (encTransferFrom)", function () {
     await XFHE.waitForDeployment();
 
     // Deploy Vault
-    const VaultFactory = await ethers.getContractFactory("Vault");
-    const Vault = (await VaultFactory.deploy(XFHEAddress)) as Vault;
-    await Vault.waitForDeployment();
+    const MockVaultFactory = await ethers.getContractFactory("MockVault");
+    const MockVault = (await MockVaultFactory.deploy(XFHEAddress)) as MockVault;
+    await MockVault.waitForDeployment();
 
-    return { XFHE, Vault };
+    return { XFHE, Vault: MockVault };
   };
 
   async function setupFixture() {

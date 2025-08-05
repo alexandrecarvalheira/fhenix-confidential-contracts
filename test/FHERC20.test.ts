@@ -360,10 +360,10 @@ describe("FHERC20", function () {
       );
     });
 
-    it("Should transfer from bob to MockFherc20Vault", async function () {
+    it("Should transfer from bob to MockVault", async function () {
       const { XFHE, bob, encTransferInput, transferValue } = await setupEncTransferFromFixture();
 
-      const vaultFactory = await ethers.getContractFactory("MockFherc20Vault");
+      const vaultFactory = await ethers.getContractFactory("MockVault");
       const Vault = await vaultFactory.deploy(XFHE.target);
       await Vault.waitForDeployment();
       const vaultAddress = await Vault.getAddress();
