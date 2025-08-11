@@ -500,7 +500,7 @@ describe("FHERC20", function () {
         signer: bob,
         owner: bob.address,
         spender: alice.address,
-        valueHash: encTransferInput.ctHash + 1n,
+        valueHash: encTransferInput.ctHash + 1000000000n,
       });
 
       // Expect revert
