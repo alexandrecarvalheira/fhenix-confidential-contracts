@@ -30,7 +30,7 @@ interface IFHERC20Errors is IERC20Errors {
     error FHERC20EncTransferFromSpenderMismatch(address to, address permitSpender);
 
     /**
-     * @dev encTransferFrom `value` greater than `permit.value_hash` dont match (permit doesn't match InEuint128)
+     * @dev encTransferFrom `value` greater than `permit.value_hash` dont match (permit doesn't match InEuint64)
      * @param inValueHash encTransferFrom param inValue.ctHash.
      * @param permitValueHash token amount hash included in FHERC20_EIP712_Permit struct.
      */

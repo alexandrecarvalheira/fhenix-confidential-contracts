@@ -52,7 +52,7 @@ describe("MockVault (encTransferFrom)", function () {
 
       // Encrypt transfer value
       const transferValue = ethers.parseEther("1");
-      const encTransferResult = await cofhejs.encrypt([Encryptable.uint128(transferValue)] as const);
+      const encTransferResult = await cofhejs.encrypt([Encryptable.uint64(transferValue)] as const);
       const [encTransferInput] = await hre.cofhe.expectResultSuccess(encTransferResult);
 
       // Append metadata to encTransferInput.ctHash

@@ -13,7 +13,7 @@ import { Nonces } from "@openzeppelin/contracts/utils/Nonces.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IFHERC20 } from "./interfaces/IFHERC20.sol";
 import { IFHERC20Errors } from "./interfaces/IFHERC20Errors.sol";
-import { FHE, euint128, InEuint128, Utils } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import { FHE, Utils, euint64, InEuint64 } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -63,10 +63,10 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     // to indicate change when the real encrypted change is not yet implemented
     // in infrastructure like wallets and etherscans.
     mapping(address account => uint16) internal _indicatedBalances;
-    mapping(address account => euint128) internal _encBalances;
+    mapping(address account => euint64) internal _encBalances;
 
     uint16 internal _indicatedTotalSupply;
-    euint128 internal _encTotalSupply;
+    euint64 internal _encTotalSupply;
 
     string private _name;
     string private _symbol;
@@ -143,7 +143,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     /**
      * @dev Returns the encrypted total supply.
      */
-    function encTotalSupply() public view virtual returns (euint128) {
+    function encTotalSupply() public view virtual returns (euint64) {
         return _encTotalSupply;
     }
 
@@ -184,9 +184,9 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     /**
      * @dev See {IERC20-balanceOf}.
      *
-     * Returns the euint128 representing the account's true balance (encrypted)
+     * Returns the euint64 representing the account's true balance (encrypted)
      */
-    function encBalanceOf(address account) public view virtual returns (euint128) {
+    function encBalanceOf(address account) public view virtual returns (euint64) {
         return _encBalances[account];
     }
 
@@ -205,14 +205,14 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * - `to` cannot be the zero address.
      * - the caller must have a balance of at least `value`.
-     * - `inValue` must be a `InEuint128` to preserve confidentiality.
+     * - `inValue` must be a `InEuint64` to preserve confidentiality.
      */
-    function encTransfer(address to, InEuint128 memory inValue) public virtual returns (euint128 transferred) {
-        euint128 value = FHE.asEuint128(inValue);
+    function encTransfer(address to, InEuint64 memory inValue) public virtual returns (euint64 transferred) {
+        euint64 value = FHE.asEuint64(inValue);
         transferred = encTransfer(to, value);
     }
 
-    function encTransfer(address to, euint128 value) public virtual returns (euint128 transferred) {
+    function encTransfer(address to, euint64 value) public virtual returns (euint64 transferred) {
         address owner = _msgSender();
         transferred = _transfer(owner, to, value);
     }
@@ -258,14 +258,14 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     function encTransferFromDirectWithMax(
         address from,
         address to,
-        euint128 value,
-        InEuint128 memory maxInValue,
+        euint64 value,
+        InEuint64 memory maxInValue,
         FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint128) {
+    ) public virtual returns (euint64) {
         _verifyPermit(from, maxInValue.ctHash, permit);
 
-        euint128 maxIn = FHE.asEuint128(maxInValue);
-        value = FHE.select(FHE.lte(value, maxIn), value, FHE.asEuint128(0));
+        euint64 maxIn = FHE.asEuint64(maxInValue);
+        value = FHE.select(FHE.lte(value, maxIn), value, FHE.asEuint64(0));
 
         return _transfer(from, to, value);
     }
@@ -273,12 +273,12 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     function encTransferFromDirect(
         address from,
         address to,
-        InEuint128 memory inValue,
+        InEuint64 memory inValue,
         FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint128 transferred) {
+    ) public virtual returns (euint64 transferred) {
         _verifyPermit(from, inValue.ctHash, permit);
 
-        euint128 value = FHE.asEuint128(inValue);
+        euint64 value = FHE.asEuint64(inValue);
 
         transferred = _transfer(from, to, value);
     }
@@ -286,23 +286,23 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     function encTransferFrom(
         address from,
         address to,
-        euint128 value,
+        euint64 value,
         FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint128 transferred) {
-        _verifyPermit(from, euint128.unwrap(value), permit);
+    ) public virtual returns (euint64 transferred) {
+        _verifyPermit(from, euint64.unwrap(value), permit);
         transferred = _transfer(from, to, value);
     }
 
     function encTransferFromWithMax(
         address from,
         address to,
-        euint128 value,
-        euint128 maxValue,
+        euint64 value,
+        euint64 maxValue,
         FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint128 transferred) {
-        _verifyPermit(from, euint128.unwrap(maxValue), permit);
+    ) public virtual returns (euint64 transferred) {
+        _verifyPermit(from, euint64.unwrap(maxValue), permit);
 
-        value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint128(0));
+        value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint64(0));
 
         transferred = _transfer(from, to, value);
     }
@@ -317,7 +317,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
-    function _transfer(address from, address to, euint128 value) internal returns (euint128 transferred) {
+    function _transfer(address from, address to, euint64 value) internal returns (euint64 transferred) {
         if (from == address(0)) {
             revert ERC20InvalidSender(address(0));
         }
@@ -350,7 +350,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * Emits a {Transfer} event and an {EncTransfer} event which includes the encrypted value.
      */
-    function _update(address from, address to, euint128 value) internal virtual returns (euint128 transferred) {
+    function _update(address from, address to, euint64 value) internal virtual returns (euint64 transferred) {
         // If `value` is greater than the user's encBalance, it is replaced with 0
         // The transaction will succeed, but the amount transferred may be 0
         // Both `from` and `to` will have their `encBalance` updated in either case to preserve confidentiality
@@ -358,7 +358,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         // NOTE: If the function is `_mint`, `from` is the zero address, and does not have an `encBalance` to
         //       compare against, so this check is skipped.
         if (from != address(0)) {
-            transferred = FHE.select(value.lte(_encBalances[from]), value, FHE.asEuint128(0));
+            transferred = FHE.select(value.lte(_encBalances[from]), value, FHE.asEuint64(0));
         } else {
             transferred = value;
         }
@@ -380,12 +380,12 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         }
 
         // Update CoFHE Access Control List (ACL) to allow decrypting / sealing of the new balances
-        if (euint128.unwrap(_encBalances[from]) != 0) {
+        if (euint64.unwrap(_encBalances[from]) != 0) {
             FHE.allowThis(_encBalances[from]);
             FHE.allow(_encBalances[from], from);
             FHE.allow(transferred, from);
         }
-        if (euint128.unwrap(_encBalances[to]) != 0) {
+        if (euint64.unwrap(_encBalances[to]) != 0) {
             FHE.allowThis(_encBalances[to]);
             FHE.allow(_encBalances[to], to);
             FHE.allow(transferred, to);
@@ -398,7 +398,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         FHE.allowThis(_encTotalSupply);
 
         emit Transfer(from, to, _indicatorTick);
-        emit EncTransfer(from, to, euint128.unwrap(transferred));
+        emit EncTransfer(from, to, euint64.unwrap(transferred));
     }
 
     /**
@@ -409,11 +409,11 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
-    function _mint(address account, uint128 value) internal returns (euint128 transferred) {
+    function _mint(address account, uint64 value) internal returns (euint64 transferred) {
         if (account == address(0)) {
             revert ERC20InvalidReceiver(address(0));
         }
-        transferred = _update(address(0), account, FHE.asEuint128(value));
+        transferred = _update(address(0), account, FHE.asEuint64(value));
     }
 
     /**
@@ -424,11 +424,11 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
-    function _burn(address account, uint128 value) internal returns (euint128 transferred) {
+    function _burn(address account, uint64 value) internal returns (euint64 transferred) {
         if (account == address(0)) {
             revert ERC20InvalidSender(address(0));
         }
-        transferred = _update(account, address(0), FHE.asEuint128(value));
+        transferred = _update(account, address(0), FHE.asEuint64(value));
     }
 
     /**
@@ -439,7 +439,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
-    function _encMint(address account, euint128 value) internal returns (euint128 transferred) {
+    function _encMint(address account, euint64 value) internal returns (euint64 transferred) {
         if (account == address(0)) {
             revert ERC20InvalidReceiver(address(0));
         }
@@ -454,7 +454,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
-    function _encBurn(address account, euint128 value) internal returns (euint128 transferred) {
+    function _encBurn(address account, euint64 value) internal returns (euint64 transferred) {
         if (account == address(0)) {
             revert ERC20InvalidSender(address(0));
         }
