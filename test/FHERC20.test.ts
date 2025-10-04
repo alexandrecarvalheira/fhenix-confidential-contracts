@@ -79,7 +79,7 @@ describe("FHERC20", function () {
 
       expect(await XFHE.totalSupply()).to.equal(0);
       expect(await ticksToIndicated(XFHE, 0n)).to.equal(0n);
-      expect(await XFHE.encTotalSupply()).to.equal(0n, "Total supply not initialized (hash is 0)");
+      expect(await XFHE.confidentialTotalSupply()).to.equal(0n, "Total supply not initialized (hash is 0)");
 
       // 1st TX, indicated + 5001, true + 1e18
 
@@ -97,7 +97,7 @@ describe("FHERC20", function () {
         await ticksToIndicated(XFHE, 5001n),
         "Total indicated supply increases",
       );
-      await hre.cofhe.mocks.expectPlaintext(await XFHE.encTotalSupply(), value);
+      await hre.cofhe.mocks.expectPlaintext(await XFHE.confidentialTotalSupply(), value);
 
       // 2nd TX, indicated + 1, true + 1e18
 
@@ -136,7 +136,7 @@ describe("FHERC20", function () {
         await ticksToIndicated(XFHE, 5001n),
         "Total indicated supply is 0.5001",
       );
-      await hre.cofhe.mocks.expectPlaintext(await XFHE.encTotalSupply(), mintValue);
+      await hre.cofhe.mocks.expectPlaintext(await XFHE.confidentialTotalSupply(), mintValue);
 
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
 
@@ -145,7 +145,7 @@ describe("FHERC20", function () {
         .withArgs(bob.address, ZeroAddress, await tick(XFHE));
 
       await expectFHERC20BalancesChange(XFHE, bob.address, -1n * (await ticksToIndicated(XFHE, 1n)), -1n * burnValue);
-      await hre.cofhe.mocks.expectPlaintext(await XFHE.encTotalSupply(), mintValue - burnValue);
+      await hre.cofhe.mocks.expectPlaintext(await XFHE.confidentialTotalSupply(), mintValue - burnValue);
 
       expect(await XFHE.totalSupply()).to.equal(
         await ticksToIndicated(XFHE, 5000n),
@@ -240,7 +240,7 @@ describe("FHERC20", function () {
       await prepExpectFHERC20BalancesChange(XFHE, alice.address);
 
       await expect(
-        XFHE.connect(bob)["encTransfer(address,(uint256,uint8,uint8,bytes))"](alice.address, encTransferInput),
+        XFHE.connect(bob)["confidentialTransfer(address,(uint256,uint8,uint8,bytes))"](alice.address, encTransferInput),
       )
         .to.emit(XFHE, "Transfer")
         .withArgs(bob.address, alice.address, await tick(XFHE));
@@ -269,12 +269,12 @@ describe("FHERC20", function () {
 
       // encTransfer (reverts)
       await expect(
-        XFHE.connect(bob)["encTransfer(address,(uint256,uint8,uint8,bytes))"](ZeroAddress, encTransferInput),
+        XFHE.connect(bob)["confidentialTransfer(address,(uint256,uint8,uint8,bytes))"](ZeroAddress, encTransferInput),
       ).to.be.revertedWithCustomError(XFHE, "ERC20InvalidReceiver");
     });
   });
 
-  describe("encTransferFrom", function () {
+  describe("confidentialTransferFrom", function () {
     const setupEncTransferFromFixture = async () => {
       const { XFHE, bob, alice, eve } = await setupFixture();
 
@@ -307,7 +307,9 @@ describe("FHERC20", function () {
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
       await prepExpectFHERC20BalancesChange(XFHE, alice.address);
 
-      await expect(XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit))
+      await expect(
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+      )
         .to.emit(XFHE, "Transfer")
         .withArgs(bob.address, alice.address, await tick(XFHE));
 
@@ -342,7 +344,9 @@ describe("FHERC20", function () {
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
       await prepExpectFHERC20BalancesChange(XFHE, alice.address);
 
-      await expect(XFHE.connect(eve).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit))
+      await expect(
+        XFHE.connect(eve).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+      )
         .to.emit(XFHE, "Transfer")
         .withArgs(bob.address, alice.address, await tick(XFHE));
 
@@ -416,7 +420,7 @@ describe("FHERC20", function () {
       });
 
       await expect(
-        XFHE.connect(alice).encTransferFromDirect(bob.address, ZeroAddress, encTransferInput, permit),
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, ZeroAddress, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC20InvalidReceiver");
     });
 
@@ -446,7 +450,7 @@ describe("FHERC20", function () {
 
       // Expect revert
       await expect(
-        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC2612ExpiredSignature");
     });
 
@@ -466,14 +470,14 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(bob).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
-      ).to.be.revertedWithCustomError(XFHE, "FHERC20EncTransferFromOwnerMismatch");
+        XFHE.connect(bob).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+      ).to.be.revertedWithCustomError(XFHE, "FHERC20ConfidentialTransferFromOwnerMismatch");
     });
 
     it("Should revert on spender mismatch", async function () {
       const { XFHE, bob, alice, eve, encTransferInput } = await setupEncTransferFromFixture();
 
-      // FHERC20EncTransferFromSpenderMismatch
+      // FHERC20ConfidentialTransferFromSpenderMismatch
 
       const permit = await generateTransferFromPermit({
         token: XFHE,
@@ -486,14 +490,14 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
-      ).to.be.revertedWithCustomError(XFHE, "FHERC20EncTransferFromSpenderMismatch");
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+      ).to.be.revertedWithCustomError(XFHE, "FHERC20ConfidentialTransferFromSpenderMismatch");
     });
 
     it("Should revert on value_hash mismatch", async function () {
       const { XFHE, bob, alice, encTransferInput } = await setupEncTransferFromFixture();
 
-      // FHERC20EncTransferFromValueHashMismatch
+      // FHERC20ConfidentialTransferFromValueHashMismatch
 
       const permit = await generateTransferFromPermit({
         token: XFHE,
@@ -506,8 +510,8 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
-      ).to.be.revertedWithCustomError(XFHE, "FHERC20EncTransferFromValueHashMismatch");
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+      ).to.be.revertedWithCustomError(XFHE, "FHERC20ConfidentialTransferFromValueHashMismatch");
     });
 
     it("Should revert on signer not owner", async function () {
@@ -526,7 +530,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC2612InvalidSigner");
     });
 
@@ -547,7 +551,7 @@ describe("FHERC20", function () {
       // Expect revert
 
       await expect(
-        XFHE.connect(alice).encTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
+        XFHE.connect(alice).confidentialTransferFromDirect(bob.address, alice.address, encTransferInput, permit),
       ).to.be.revertedWithCustomError(XFHE, "ERC2612InvalidSigner");
     });
   });

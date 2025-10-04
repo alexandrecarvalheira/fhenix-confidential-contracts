@@ -143,7 +143,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     /**
      * @dev Returns the encrypted total supply.
      */
-    function encTotalSupply() public view virtual returns (euint64) {
+    function confidentialTotalSupply() public view virtual returns (euint64) {
         return _encTotalSupply;
     }
 
@@ -186,7 +186,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * Returns the euint64 representing the account's true balance (encrypted)
      */
-    function encBalanceOf(address account) public view virtual returns (euint64) {
+    function confidentialBalanceOf(address account) public view virtual returns (euint64) {
         return _encBalances[account];
     }
 
@@ -207,12 +207,12 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      * - the caller must have a balance of at least `value`.
      * - `inValue` must be a `InEuint64` to preserve confidentiality.
      */
-    function encTransfer(address to, InEuint64 memory inValue) public virtual returns (euint64 transferred) {
+    function confidentialTransfer(address to, InEuint64 memory inValue) public virtual returns (euint64 transferred) {
         euint64 value = FHE.asEuint64(inValue);
-        transferred = encTransfer(to, value);
+        transferred = confidentialTransfer(to, value);
     }
 
-    function encTransfer(address to, euint64 value) public virtual returns (euint64 transferred) {
+    function confidentialTransfer(address to, euint64 value) public virtual returns (euint64 transferred) {
         address owner = _msgSender();
         transferred = _transfer(owner, to, value);
     }
@@ -221,7 +221,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      * @dev See {IERC20-allowance}.
      * Always reverts to prevent FHERC20 from being unintentionally treated as an ERC20.
      * Allowances have been removed from FHERC20s to prevent encrypted balance leakage.
-     * Allowances have been replaced with an EIP712 permit for each `encTransferFrom`.
+     * Allowances have been replaced with an EIP712 permit for each `confidentialTransferFrom`.
      */
     function allowance(address, address) external pure returns (uint256) {
         revert FHERC20IncompatibleFunction();
@@ -231,7 +231,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      * @dev See {IERC20-approve}.
      * Always reverts to prevent FHERC20 from being unintentionally treated as an ERC20.
      * Allowances have been removed from FHERC20s to prevent encrypted balance leakage.
-     * Allowances have been replaced with an EIP712 permit for each `encTransferFrom`.
+     * Allowances have been replaced with an EIP712 permit for each `confidentialTransferFrom`.
      */
     function approve(address, uint256) external pure returns (bool) {
         revert FHERC20IncompatibleFunction();
@@ -255,7 +255,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      * - the caller must have allowance for ``from``'s tokens of at least
      * `value`.
      */
-    function encTransferFromDirectWithMax(
+    function confidentialTransferFromDirectWithMax(
         address from,
         address to,
         euint64 value,
@@ -270,7 +270,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         return _transfer(from, to, value);
     }
 
-    function encTransferFromDirect(
+    function confidentialTransferFromDirect(
         address from,
         address to,
         InEuint64 memory inValue,
@@ -283,7 +283,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         transferred = _transfer(from, to, value);
     }
 
-    function encTransferFrom(
+    function confidentialTransferFrom(
         address from,
         address to,
         euint64 value,
@@ -293,7 +293,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         transferred = _transfer(from, to, value);
     }
 
-    function encTransferFromWithMax(
+    function confidentialTransferFromWithMax(
         address from,
         address to,
         euint64 value,
@@ -348,7 +348,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      * (or `to`) is the zero address. All customizations to transfers, mints, and burns should be done by overriding
      * this function.
      *
-     * Emits a {Transfer} event and an {EncTransfer} event which includes the encrypted value.
+     * Emits a {Transfer} event and an {ConfidentialTransfer} event which includes the encrypted value.
      */
     function _update(address from, address to, euint64 value) internal virtual returns (euint64 transferred) {
         // If `value` is greater than the user's encBalance, it is replaced with 0
@@ -398,7 +398,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         FHE.allowThis(_encTotalSupply);
 
         emit Transfer(from, to, _indicatorTick);
-        emit EncTransfer(from, to, euint64.unwrap(transferred));
+        emit ConfidentialTransfer(from, to, euint64.unwrap(transferred));
     }
 
     /**
@@ -439,7 +439,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
-    function _encMint(address account, euint64 value) internal returns (euint64 transferred) {
+    function _confidentialMint(address account, euint64 value) internal returns (euint64 transferred) {
         if (account == address(0)) {
             revert ERC20InvalidReceiver(address(0));
         }
@@ -454,7 +454,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
-    function _encBurn(address account, euint64 value) internal returns (euint64 transferred) {
+    function _confidentialBurn(address account, euint64 value) internal returns (euint64 transferred) {
         if (account == address(0)) {
             revert ERC20InvalidSender(address(0));
         }
@@ -493,13 +493,13 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
             revert ERC2612ExpiredSignature(permit.deadline);
         }
         if (from != permit.owner) {
-            revert FHERC20EncTransferFromOwnerMismatch(from, permit.owner);
+            revert FHERC20ConfidentialTransferFromOwnerMismatch(from, permit.owner);
         }
         if (msg.sender != permit.spender) {
-            revert FHERC20EncTransferFromSpenderMismatch(msg.sender, permit.spender);
+            revert FHERC20ConfidentialTransferFromSpenderMismatch(msg.sender, permit.spender);
         }
         if (!_ctHashesEqualExcludingMetadata(inHash, permit.value_hash)) {
-            revert FHERC20EncTransferFromValueHashMismatch(inHash, permit.value_hash);
+            revert FHERC20ConfidentialTransferFromValueHashMismatch(inHash, permit.value_hash);
         }
 
         bytes32 structHash = keccak256(

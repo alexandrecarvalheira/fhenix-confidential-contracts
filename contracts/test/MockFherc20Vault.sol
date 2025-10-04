@@ -17,6 +17,6 @@ contract MockFherc20Vault {
     function deposit(InEuint64 memory inValue, IFHERC20.FHERC20_EIP712_Permit calldata permit) public {
         euint64 value = FHE.asEuint64(inValue);
         FHE.allow(value, address(fherc20));
-        fherc20.encTransferFrom(msg.sender, address(this), value, permit);
+        fherc20.confidentialTransferFrom(msg.sender, address(this), value, permit);
     }
 }

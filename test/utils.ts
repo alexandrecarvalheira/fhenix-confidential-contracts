@@ -30,7 +30,7 @@ const encBalances = new Map<string, bigint>();
 
 export const prepExpectFHERC20BalancesChange = async (token: FHERC20, account: string) => {
   indicatedBalances.set(account, await token.balanceOf(account));
-  const encBalanceHash = await token.encBalanceOf(account);
+  const encBalanceHash = await token.confidentialBalanceOf(account);
   const encBalance = await hre.cofhe.mocks.getPlaintext(encBalanceHash);
   encBalances.set(account, encBalance);
 };
@@ -51,7 +51,7 @@ export const expectFHERC20BalancesChange = async (
     `${symbol} (FHERC20) indicated balance change for ${account} is incorrect. Expected: ${expectedIndicatedChange}, received: ${indicatedChange}`,
   );
 
-  const currEncBalanceHash = await token.encBalanceOf(account);
+  const currEncBalanceHash = await token.confidentialBalanceOf(account);
   const currEncBalance = await hre.cofhe.mocks.getPlaintext(currEncBalanceHash);
   const prevEncBalance = encBalances.get(account)!;
   const encChange = currEncBalance - prevEncBalance;
@@ -79,7 +79,7 @@ export const expectERC20BalancesChange = async (token: ERC20, account: string, e
   );
 };
 
-// EncTransferFromPermit
+// ConfidentialTransferFromPermit
 type GeneratePermitOptions = {
   signer: HardhatEthersSigner;
   token: FHERC20;

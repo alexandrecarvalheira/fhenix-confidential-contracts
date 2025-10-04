@@ -11,7 +11,7 @@ import {
   ticksToIndicated,
 } from "./utils";
 
-describe("MockVault (encTransferFrom)", function () {
+describe("MockVault (confidentialTransferFrom)", function () {
   // We define a fixture to reuse the same setup in every test.
   const deployContracts = async () => {
     // Deploy XFHE
@@ -58,7 +58,7 @@ describe("MockVault (encTransferFrom)", function () {
       // Append metadata to encTransferInput.ctHash
       const encTransferCtHashWMetadata = appendMetadataToInput(encTransferInput);
 
-      // Generate encTransferFrom permit
+      // Generate ConfidentialTransferFrom permit
       const permit = await generateTransferFromPermit({
         token: XFHE,
         signer: bob,
