@@ -226,12 +226,12 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
      */
     function confidentialTransfer(address to, InEuint64 memory inValue) public virtual returns (euint64 transferred) {
         euint64 value = FHE.asEuint64(inValue);
-        transferred = confidentialTransfer(to, value);
+        transferred = _transfer(msg.sender, to, value);
     }
 
     function confidentialTransfer(address to, euint64 value) public virtual returns (euint64 transferred) {
-        address owner = _msgSender();
-        transferred = _transfer(owner, to, value);
+        require(FHE.isAllowed(value, msg.sender), FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender));
+        transferred = _transfer(msg.sender, to, value);
     }
 
     /**
@@ -282,6 +282,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         euint64 value,
         FHERC20_EIP712_Permit calldata permit
     ) public virtual returns (euint64 transferred) {
+        require(FHE.isAllowed(value, msg.sender), FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender));
         require(isOperator(from, msg.sender), FHERC20UnauthorizedSpender(from, msg.sender));
         _verifyPermit(from, permit);
         transferred = _transfer(from, to, value);

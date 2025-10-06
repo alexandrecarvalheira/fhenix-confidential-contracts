@@ -3,6 +3,7 @@
 pragma solidity ^0.8.25;
 
 import { IERC20Errors } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import { euint64 } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 /**
  * @dev Standard FHERC-20 Errors
@@ -21,6 +22,12 @@ interface IFHERC20Errors is IERC20Errors {
      * @param permitOwner token owner included in FHERC20_EIP712_Permit struct.
      */
     error FHERC20ConfidentialTransferFromOwnerMismatch(address from, address permitOwner);
+
+    /**
+     * @dev The caller `owner` does not have access to the encrypted value `value`.
+     *
+     */
+    error FHERC20UnauthorizedUseOfEncryptedAmount(euint64 value, address owner);
 
     /**
      * @dev ConfidentialTransferFrom `from` and `permit.owner` don't match
