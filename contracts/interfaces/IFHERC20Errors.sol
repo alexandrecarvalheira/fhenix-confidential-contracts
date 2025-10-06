@@ -23,6 +23,13 @@ interface IFHERC20Errors is IERC20Errors {
     error FHERC20ConfidentialTransferFromOwnerMismatch(address from, address permitOwner);
 
     /**
+     * @dev ConfidentialTransferFrom `from` and `permit.owner` don't match
+     * @param from ConfidentialTransferFrom param.
+     * @param spender operator authorized to spent tokens from.
+     */
+    error FHERC20UnauthorizedSpender(address from, address spender);
+
+    /**
      * @dev ConfidentialTransferFrom `to` and `permit.spender` don't match
      * @param to ConfidentialTransferFrom param.
      * @param permitSpender token receiver included in FHERC20_EIP712_Permit struct.

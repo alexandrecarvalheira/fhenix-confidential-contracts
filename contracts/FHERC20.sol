@@ -64,6 +64,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     // in infrastructure like wallets and etherscans.
     mapping(address account => uint16) internal _indicatedBalances;
     mapping(address account => euint64) internal _encBalances;
+    mapping(address account => mapping(address spender => uint48)) internal _operators;
 
     uint16 internal _indicatedTotalSupply;
     euint64 internal _encTotalSupply;
@@ -76,7 +77,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     // EIP712 Permit
 
     bytes32 internal constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value_hash,uint256 nonce,uint256 deadline)");
+        keccak256("Permit(address owner,address spender,uint256 nonce,uint256 deadline)");
 
     /**
      * @dev Sets the values for {name} and {symbol}.
@@ -191,6 +192,22 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
     }
 
     /**
+     * @dev Returns true if `spender` is currently an operator for `holder`.
+     */
+    function isOperator(address holder, address spender) public view virtual returns (bool) {
+        return holder == spender || block.timestamp <= _operators[holder][spender];
+    }
+
+    /**
+     * @dev Sets `operator` as an operator for `holder` until the timestamp `until`.
+     *
+     * NOTE: An operator may transfer any amount of tokens on behalf of a holder while approved.
+     */
+    function setOperator(address operator, uint48 until) public virtual {
+        _setOperator(msg.sender, operator, until);
+    }
+
+    /**
      * @dev See {IERC20-transfer}.
      * Always reverts to prevent FHERC20 from being unintentionally treated as an ERC20
      */
@@ -245,38 +262,14 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         revert FHERC20IncompatibleFunction();
     }
 
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Requirements:
-     *
-     * - `from` and `to` cannot be the zero address.
-     * - `from` must have a balance of at least `value`.
-     * - the caller must have allowance for ``from``'s tokens of at least
-     * `value`.
-     */
-    function confidentialTransferFromDirectWithMax(
-        address from,
-        address to,
-        euint64 value,
-        InEuint64 memory maxInValue,
-        FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint64) {
-        _verifyPermit(from, maxInValue.ctHash, permit);
-
-        euint64 maxIn = FHE.asEuint64(maxInValue);
-        value = FHE.select(FHE.lte(value, maxIn), value, FHE.asEuint64(0));
-
-        return _transfer(from, to, value);
-    }
-
     function confidentialTransferFromDirect(
         address from,
         address to,
         InEuint64 memory inValue,
         FHERC20_EIP712_Permit calldata permit
     ) public virtual returns (euint64 transferred) {
-        _verifyPermit(from, inValue.ctHash, permit);
+        require(isOperator(from, msg.sender), FHERC20UnauthorizedSpender(from, msg.sender));
+        _verifyPermit(from, permit);
 
         euint64 value = FHE.asEuint64(inValue);
 
@@ -289,24 +282,10 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         euint64 value,
         FHERC20_EIP712_Permit calldata permit
     ) public virtual returns (euint64 transferred) {
-        _verifyPermit(from, euint64.unwrap(value), permit);
+        require(isOperator(from, msg.sender), FHERC20UnauthorizedSpender(from, msg.sender));
+        _verifyPermit(from, permit);
         transferred = _transfer(from, to, value);
     }
-
-    function confidentialTransferFromWithMax(
-        address from,
-        address to,
-        euint64 value,
-        euint64 maxValue,
-        FHERC20_EIP712_Permit calldata permit
-    ) public virtual returns (euint64 transferred) {
-        _verifyPermit(from, euint64.unwrap(maxValue), permit);
-
-        value = FHE.select(FHE.lte(value, maxValue), value, FHE.asEuint64(0));
-
-        transferred = _transfer(from, to, value);
-    }
-
     /**
      * @dev Moves a `value` amount of tokens from `from` to `to`.
      *
@@ -488,7 +467,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         _indicatedBalances[msg.sender] = 0;
     }
 
-    function _verifyPermit(address from, uint256 inHash, FHERC20_EIP712_Permit calldata permit) internal {
+    function _verifyPermit(address from, FHERC20_EIP712_Permit calldata permit) internal {
         if (block.timestamp > permit.deadline) {
             revert ERC2612ExpiredSignature(permit.deadline);
         }
@@ -498,19 +477,15 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         if (msg.sender != permit.spender) {
             revert FHERC20ConfidentialTransferFromSpenderMismatch(msg.sender, permit.spender);
         }
-        if (!_ctHashesEqualExcludingMetadata(inHash, permit.value_hash)) {
-            revert FHERC20ConfidentialTransferFromValueHashMismatch(inHash, permit.value_hash);
+        if (isOperator(permit.owner, permit.spender)) {
+            revert FHERC20UnauthorizedSpender(permit.owner, permit.spender);
         }
+        // if (!_ctHashesEqualExcludingMetadata(inHash, permit.value_hash)) {
+        //     revert FHERC20ConfidentialTransferFromValueHashMismatch(inHash, permit.value_hash);
+        // }
 
         bytes32 structHash = keccak256(
-            abi.encode(
-                PERMIT_TYPEHASH,
-                permit.owner,
-                permit.spender,
-                permit.value_hash,
-                _useNonce(permit.owner),
-                permit.deadline
-            )
+            abi.encode(PERMIT_TYPEHASH, permit.owner, permit.spender, _useNonce(permit.owner), permit.deadline)
         );
 
         bytes32 hash = _hashTypedDataV4(structHash);
@@ -521,12 +496,17 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context, EIP712, Nonces {
         }
     }
 
+    function _setOperator(address holder, address operator, uint48 until) internal virtual {
+        _operators[holder][operator] = until;
+        emit OperatorSet(holder, operator, until);
+    }
+
     /**
      * @dev Compares ctHashes excluding the appended metadata.
      * XORs the hashes, and checks if the non-matching bytes is less than the metadata length.
      * Metadata being excluded: securityZone, utype, trivially encrypted flag.
      */
-    function _ctHashesEqualExcludingMetadata(uint256 lhs, uint256 rhs) internal view returns (bool) {
-        return (lhs ^ rhs) <= type(uint16).max;
-    }
+    // function _ctHashesEqualExcludingMetadata(uint256 lhs, uint256 rhs) internal view returns (bool) {
+    //     return (lhs ^ rhs) <= type(uint16).max;
+    // }
 }
