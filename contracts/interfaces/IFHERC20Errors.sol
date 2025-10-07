@@ -49,17 +49,4 @@ interface IFHERC20Errors is IERC20Errors {
      * @param permitValueHash token amount hash included in FHERC20_EIP712_Permit struct.
      */
     error FHERC20ConfidentialTransferFromValueHashMismatch(uint256 inValueHash, uint256 permitValueHash);
-
-    /**
-     * @dev Permit deadline has expired.
-     * @param deadline Expired deadline of the FHERC20_EIP712_Permit.
-     */
-    error ERC2612ExpiredSignature(uint256 deadline);
-
-    /**
-     * @dev Mismatched signature.
-     * @param signer ECDSA recovered signer of the FHERC20_EIP712_Permit.
-     * @param owner Owner passed in as part of the FHERC20_EIP712_Permit struct.
-     */
-    error ERC2612InvalidSigner(address signer, address owner);
 }
