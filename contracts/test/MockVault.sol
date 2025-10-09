@@ -17,10 +17,10 @@ contract MockVault {
         asset = FHERC20(_asset);
     }
 
-    function deposit(InEuint64 calldata inAmount, IFHERC20.FHERC20_EIP712_Permit calldata permit) external {
+    function deposit(InEuint64 calldata inAmount) external {
         euint64 amount = FHE.asEuint64(inAmount);
         FHE.allow(amount, address(asset));
-        euint64 transferred = asset.confidentialTransferFrom(msg.sender, address(this), amount, permit);
+        euint64 transferred = asset.confidentialTransferFrom(msg.sender, address(this), amount);
         (, euint64 updated) = FHESafeMath.tryAdd(balances[msg.sender], transferred);
         balances[msg.sender] = updated;
     }

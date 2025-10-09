@@ -16,6 +16,9 @@ interface IFHERC20Errors is IERC20Errors {
      */
     error FHERC20IncompatibleFunction();
 
+    /// @dev The given receiver `receiver` is invalid for transfers.
+    error FHERC20InvalidReceiver(address receiver);
+
     /**
      * @dev ConfidentialTransferFrom `from` and `permit.owner` don't match
      * @param from ConfidentialTransferFrom param.

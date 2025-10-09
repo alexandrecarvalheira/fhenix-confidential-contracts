@@ -9,8 +9,9 @@ import { IERC20Errors } from "@openzeppelin/contracts/interfaces/draft-IERC6093.
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { Context } from "@openzeppelin/contracts/utils/Context.sol";
 import { IFHERC20 } from "./interfaces/IFHERC20.sol";
+import { FHERC20Utils } from "./utils/FHERC20Utils.sol";
 import { IFHERC20Errors } from "./interfaces/IFHERC20Errors.sol";
-import { FHE, Utils, euint64, InEuint64 } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import { FHE, Utils, euint64, InEuint64, ebool } from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -208,25 +209,6 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
     }
 
     /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - the caller must have a balance of at least `value`.
-     * - `inValue` must be a `InEuint64` to preserve confidentiality.
-     */
-    function confidentialTransfer(address to, InEuint64 memory inValue) public virtual returns (euint64 transferred) {
-        euint64 value = FHE.asEuint64(inValue);
-        transferred = _transfer(msg.sender, to, value);
-    }
-
-    function confidentialTransfer(address to, euint64 value) public virtual returns (euint64 transferred) {
-        require(FHE.isAllowed(value, msg.sender), FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender));
-        transferred = _transfer(msg.sender, to, value);
-    }
-
-    /**
      * @dev See {IERC20-allowance}.
      * Always reverts to prevent FHERC20 from being unintentionally treated as an ERC20.
      * Allowances have been removed from FHERC20s to prevent encrypted balance leakage.
@@ -254,13 +236,38 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         revert FHERC20IncompatibleFunction();
     }
 
+    /**
+     * @dev See {IERC20-transfer}.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - the caller must have a balance of at least `value`.
+     * - `inValue` must be a `InEuint64` to preserve confidentiality.
+     */
+    function confidentialTransferDirect(
+        address to,
+        InEuint64 memory inValue
+    ) public virtual returns (euint64 transferred) {
+        euint64 value = FHE.asEuint64(inValue);
+        transferred = _transfer(msg.sender, to, value);
+    }
+
+    function confidentialTransfer(address to, euint64 value) public virtual returns (euint64 transferred) {
+        if (!FHE.isAllowed(value, msg.sender)) {
+            revert FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender);
+        }
+        transferred = _transfer(msg.sender, to, value);
+    }
+
     function confidentialTransferFromDirect(
         address from,
         address to,
         InEuint64 memory inValue
     ) public virtual returns (euint64 transferred) {
-        require(isOperator(from, msg.sender), FHERC20UnauthorizedSpender(from, msg.sender));
-
+        if (!isOperator(from, to)) {
+            revert FHERC20UnauthorizedSpender(from, to);
+        }
         euint64 value = FHE.asEuint64(inValue);
 
         transferred = _transfer(from, to, value);
@@ -271,9 +278,62 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         address to,
         euint64 value
     ) public virtual returns (euint64 transferred) {
-        require(FHE.isAllowed(value, msg.sender), FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender));
-        require(isOperator(from, msg.sender), FHERC20UnauthorizedSpender(from, msg.sender));
+        if (!FHE.isAllowed(value, msg.sender)) {
+            revert FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender);
+        }
+        if (!isOperator(from, to)) {
+            revert FHERC20UnauthorizedSpender(from, to);
+        }
         transferred = _transfer(from, to, value);
+    }
+
+    function confidentialTransferDirectAndCall(
+        address to,
+        InEuint64 memory inValue,
+        bytes calldata data
+    ) public virtual returns (euint64 transferred) {
+        euint64 value = FHE.asEuint64(inValue);
+        transferred = _transferAndCall(msg.sender, to, value, data);
+    }
+
+    function confidentialTransferAndCall(
+        address to,
+        euint64 value,
+        bytes calldata data
+    ) public virtual returns (euint64 transferred) {
+        if (!FHE.isAllowed(value, msg.sender)) {
+            revert FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender);
+        }
+        transferred = _transferAndCall(msg.sender, to, value, data);
+    }
+
+    function confidentialTransferFromDirectAndCall(
+        address from,
+        address to,
+        InEuint64 memory inValue,
+        bytes calldata data
+    ) public virtual returns (euint64 transferred) {
+        if (!isOperator(from, to)) {
+            revert FHERC20UnauthorizedSpender(from, to);
+        }
+        euint64 value = FHE.asEuint64(inValue);
+
+        transferred = _transferAndCall(from, to, value, data);
+    }
+
+    function confidentialTransferFromAndCall(
+        address from,
+        address to,
+        euint64 value,
+        bytes calldata data
+    ) public virtual returns (euint64 transferred) {
+        if (!FHE.isAllowed(value, msg.sender)) {
+            revert FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender);
+        }
+        if (!isOperator(from, to)) {
+            revert FHERC20UnauthorizedSpender(from, to);
+        }
+        transferred = _transferAndCall(from, to, value, data);
     }
     /**
      * @dev Moves a `value` amount of tokens from `from` to `to`.
@@ -293,6 +353,23 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
             revert ERC20InvalidReceiver(address(0));
         }
         transferred = _update(from, to, value);
+    }
+
+    function _transferAndCall(
+        address from,
+        address to,
+        euint64 amount,
+        bytes calldata data
+    ) internal returns (euint64 transferred) {
+        // Try to transfer amount + replace input with actually transferred amount.
+        euint64 sent = _transfer(from, to, amount);
+
+        // Perform callback
+        ebool success = FHERC20Utils.checkOnTransferReceived(msg.sender, from, to, sent, data);
+
+        // Try to refund if callback fails
+        euint64 refund = _update(to, from, FHE.select(success, FHE.asEuint64(0), sent));
+        transferred = FHE.sub(sent, refund);
     }
 
     /*
