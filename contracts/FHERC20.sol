@@ -245,10 +245,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
      * - the caller must have a balance of at least `value`.
      * - `inValue` must be a `InEuint64` to preserve confidentiality.
      */
-    function confidentialTransferDirect(
-        address to,
-        InEuint64 memory inValue
-    ) public virtual returns (euint64 transferred) {
+    function confidentialTransfer(address to, InEuint64 memory inValue) public virtual returns (euint64 transferred) {
         euint64 value = FHE.asEuint64(inValue);
         transferred = _transfer(msg.sender, to, value);
     }
@@ -260,7 +257,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         transferred = _transfer(msg.sender, to, value);
     }
 
-    function confidentialTransferFromDirect(
+    function confidentialTransferFrom(
         address from,
         address to,
         InEuint64 memory inValue
@@ -287,7 +284,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         transferred = _transfer(from, to, value);
     }
 
-    function confidentialTransferDirectAndCall(
+    function confidentialTransferAndCall(
         address to,
         InEuint64 memory inValue,
         bytes calldata data
@@ -307,7 +304,7 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         transferred = _transferAndCall(msg.sender, to, value, data);
     }
 
-    function confidentialTransferFromDirectAndCall(
+    function confidentialTransferFromAndCall(
         address from,
         address to,
         InEuint64 memory inValue,

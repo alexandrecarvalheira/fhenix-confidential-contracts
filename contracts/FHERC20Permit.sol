@@ -21,7 +21,7 @@ import { FHE, Utils, euint64, InEuint64 } from "@fhenixprotocol/cofhe-contracts/
 
 abstract contract FHERC20Permit is FHERC20, IFHERC20Permit, EIP712, Nonces {
     bytes32 internal constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 nonce,uint256 deadline)");
+        keccak256("Permit(address owner,address spender,uint48 until, uint256 nonce,uint256 deadline)");
 
     /**
      * @dev Permit deadline has expired.
@@ -46,12 +46,12 @@ abstract contract FHERC20Permit is FHERC20, IFHERC20Permit, EIP712, Nonces {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) internal {
+    ) public virtual {
         if (block.timestamp > deadline) {
             revert ERC2612ExpiredSignature(deadline);
         }
 
-        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, _useNonce(owner), deadline));
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, until, _useNonce(owner), deadline));
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
