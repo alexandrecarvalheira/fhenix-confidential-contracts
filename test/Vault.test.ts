@@ -1,15 +1,8 @@
 import hre, { ethers } from "hardhat";
 import { FHERC20_Harness, MockVault } from "../typechain-types";
 import { cofhejs, Encryptable } from "cofhejs/node";
-import { appendMetadataToInput } from "./metadata";
 import { expect } from "chai";
-import {
-  expectFHERC20BalancesChange,
-  generateTransferFromPermit,
-  prepExpectFHERC20BalancesChange,
-  tick,
-  ticksToIndicated,
-} from "./utils";
+import { expectFHERC20BalancesChange, prepExpectFHERC20BalancesChange, tick, ticksToIndicated } from "./utils";
 
 describe("MockVault (confidentialTransferFrom)", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -55,24 +48,16 @@ describe("MockVault (confidentialTransferFrom)", function () {
       const encTransferResult = await cofhejs.encrypt([Encryptable.uint64(transferValue)] as const);
       const [encTransferInput] = await hre.cofhe.expectResultSuccess(encTransferResult);
 
-      // Append metadata to encTransferInput.ctHash
-      const encTransferCtHashWMetadata = appendMetadataToInput(encTransferInput);
-
-      // Generate ConfidentialTransferFrom permit
-      const permit = await generateTransferFromPermit({
-        token: XFHE,
-        signer: bob,
-        owner: bob.address,
-        spender: VaultAddress,
-        valueHash: encTransferCtHashWMetadata,
-      });
-
       // Success - Bob -> Vault
+
+      // Set vault as operator for bob
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp + 100;
+      await XFHE.connect(bob).setOperator(VaultAddress, timestamp);
 
       await prepExpectFHERC20BalancesChange(XFHE, bob.address);
       await prepExpectFHERC20BalancesChange(XFHE, VaultAddress);
 
-      await expect(Vault.connect(bob).deposit(encTransferInput, permit))
+      await expect(Vault.connect(bob).deposit(encTransferInput))
         .to.emit(XFHE, "Transfer")
         .withArgs(bob.address, VaultAddress, await tick(XFHE));
 

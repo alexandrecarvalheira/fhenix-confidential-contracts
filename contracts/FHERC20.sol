@@ -262,8 +262,8 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         address to,
         InEuint64 memory inValue
     ) public virtual returns (euint64 transferred) {
-        if (!isOperator(from, to)) {
-            revert FHERC20UnauthorizedSpender(from, to);
+        if (!isOperator(from, msg.sender)) {
+            revert FHERC20UnauthorizedSpender(from, msg.sender);
         }
         euint64 value = FHE.asEuint64(inValue);
 
@@ -278,8 +278,8 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         if (!FHE.isAllowed(value, msg.sender)) {
             revert FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender);
         }
-        if (!isOperator(from, to)) {
-            revert FHERC20UnauthorizedSpender(from, to);
+        if (!isOperator(from, msg.sender)) {
+            revert FHERC20UnauthorizedSpender(from, msg.sender);
         }
         transferred = _transfer(from, to, value);
     }
@@ -310,8 +310,8 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         InEuint64 memory inValue,
         bytes calldata data
     ) public virtual returns (euint64 transferred) {
-        if (!isOperator(from, to)) {
-            revert FHERC20UnauthorizedSpender(from, to);
+        if (!isOperator(from, msg.sender)) {
+            revert FHERC20UnauthorizedSpender(from, msg.sender);
         }
         euint64 value = FHE.asEuint64(inValue);
 
@@ -327,8 +327,8 @@ abstract contract FHERC20 is IFHERC20, IFHERC20Errors, Context {
         if (!FHE.isAllowed(value, msg.sender)) {
             revert FHERC20UnauthorizedUseOfEncryptedAmount(value, msg.sender);
         }
-        if (!isOperator(from, to)) {
-            revert FHERC20UnauthorizedSpender(from, to);
+        if (!isOperator(from, msg.sender)) {
+            revert FHERC20UnauthorizedSpender(from, msg.sender);
         }
         transferred = _transferAndCall(from, to, value, data);
     }
